@@ -1,3 +1,4 @@
+
 module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 		
 	input clk;			      // 50MHz clock
@@ -9,19 +10,22 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 
 	logic rst_n;				 	// Synchronized active low reset
 	logic uart_rx_ff, uart_rx_synch;
-	logic [7:0] pixel_values; //data to be stored in RAM
+	
 	
 	logic tx_rdy,rx_rdy;
 	
 	//snn_core variables
 	logic[9:0]addr_input_unit;
-	logic we;
+	logic [7:0] digit;
+	logic we,done;
 	
 	//state machine variables
 	typedef enum reg[1:0] {IDLE,READ_DIGIT,PREDICIT_DIGIT,TRANSMITTING}state_t;
 	state_t state,next_state;
 	logic clr_pixel_cnt_n,inc_addr,update_led,transmit;
 	logic [9:0] pixel_count;
+	logic [9:0] address;
+	logic [7:0] pixel_values; //data to be stored in RAM
 	/******************************************************
 	Reset synchronizer
 	******************************************************/
@@ -48,8 +52,10 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 	// For UART_RX, use "uart_rx_synch", which is synchronized, not "uart_rx".
 	
 	uart_rx rx_module(.clk(clk), .rst_n(sys_rst_n), .rx(uart_rx_synch),.rx_rdy(rx_rdy),.rx_data(pixel_values));
+
+	ram #(.DATA_WIDTH(1), .ADDR_WIDTH(10), .INIT_FILE("ram_input_contents.txt")) inputValuesDUT(.q(q_input),.clk(clk),.we(we),.data(data),.addr(addr_input_unit));	
 	
-	RAM_INPUT_LAYER input_layer(.data(pixel_values),.addr(address_value),.we(we),.clk(clk),.q(snn_core_q_input))
+	//RAM_INPUT_LAYER input_layer(.data(pixel_values),.addr(address_value),.we(we),.clk(clk),.q(snn_core_q_input));
 	
 	snn_core snn_core_module(.start(start),.rst_n(sys_rst_n),.clk(clk),.q_input(snn_core_q_input),.addr_input_unit(addr_input_unit),.digit(digit),.done(done));	
 	
@@ -58,12 +64,12 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 	//state machine
 	
 	always_comb begin
-	case(state)
-		clr_pixel_cnt_n =0;
+		clr_pixel_cnt_n=0;
 		inc_addr=0;
 		update_led=0;
 		transmit=0;
 		next_state=IDLE;
+	case(state)
 		IDLE: begin
 			if(!rx_rdy) begin
 				next_state=IDLE;
@@ -72,12 +78,13 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 				next_state=READ_DIGIT;
 				we=1;
 				inc_addr=1;
-				clr_pixel_cnt_n=1;
+				//clr_pixel_cnt_n=1;
 			end
 		end
 		
 		READ_DIGIT: begin
 		//98 in hex
+			clr_pixel_cnt_n=1;
 			if(pixel_count < 7'h62) begin
 				next_state=READ_DIGIT;
 			end
@@ -93,7 +100,7 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 		end
 		
 		PREDICIT_DIGIT: begin
-			if(!DONE) begin
+			if(!done) begin
 			next_state=PREDICIT_DIGIT;
 			end 
 			else begin
@@ -114,7 +121,7 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 		
 		default: begin 
 		end
-		
+		endcase
 	end
 	
 	//logic to decide the input of the RAM unit
@@ -134,11 +141,11 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 	if(!rst_n) led<=8'h00; 
 	else if(update_led) begin 
 		
-		led <= rx_data;
+		led <= digit;
 		end
-	end
+	
 	else begin
 	led <= led;
 	end
-
+	end
 endmodule

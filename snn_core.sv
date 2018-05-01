@@ -28,15 +28,16 @@ logic hidden_done, out_done; //When all nodes in layer are calculated and saved
 logic [7:0] highest_output; // reg storing highest output value
 logic update_digit; //signals that current output is largest seen
 
-ROM_ACT_FUNC_LUT_VALUES Activation_Function(.addr(LUT_addr),.clk(clk),.q(LUT_output));
-ROM_HIDDEN_LAYER Hidden_Layer_Weights(.addr(addr_hidden_weight),.clk(clk),.q(romHiddenWeight));
-ROM_OUTPUT_LAYER Output_Layer_Weights(.addr(addr_output_weight),.clk(clk),.q(romOutputWeight));
+
+rom #(.DATA_WIDTH(8),.ADDR_WIDTH(11), .INIT_FILE("rom_act_func_lut_contents.txt")) Activation_Function(.addr(LUT_addr),.clk(clk),.q(LUT_output));
+rom #(.DATA_WIDTH(8),.ADDR_WIDTH(15), .INIT_FILE("rom_hidden_weight_contents.txt")) Hidden_Layer_Weights(.addr(addr_hidden_weight),.clk(clk),.q(romHiddenWeight));
+rom #(.DATA_WIDTH(8),.ADDR_WIDTH(9), .INIT_FILE("rom_output_weight_contents.txt")) Output_Layer_Weights(.addr(addr_output_weight),.clk(clk),.q(romOutputWeight));
 
 //RAM_INPUT_LAYER input_layer(.addr(addr_input_unit),.data(),.we(),.clk(clk),.q(q));
-RAM_HIDDEN_OUTPUT_VALUES hidden_layer(.addr(hidden_layer_counter),.data(LUT_output),.we(hidden_WE),.clk(clk),.q(ramHiddenOutput));
+ram #(.DATA_WIDTH(8),.ADDR_WIDTH(5), .INIT_FILE("ram_hidden_contents.txt")) hidden_layer(.addr(hidden_layer_counter),.data(LUT_output),.we(hidden_WE),.clk(clk),.q(ramHiddenOutput));
 
 //GO BACK TO MAC RESULT RECTIFICATION (rect(mac)+1024)
-mac MAC (.a(input_val),.b(weight),.clr_n(mac_clr),.rst_n(rst_n),.clk(clk),.acc(acc));
+mac MAC (.a(input_val),.b(weight),.clr(mac_clr),.rst_n(rst_n),.clk(clk),.acc(acc));
 
 
 
@@ -84,12 +85,44 @@ end
 //digit output latch
 always @(posedge clk, negedge rst_n) begin
 	if(!rst_n)begin
+		//$display("shouyld reset digit\n");
 		digit <= 4'h0;
-	end if(update_digit) begin
-		highest_output <= LUT_output;
+	end else if(digit_clr) begin
+		digit <= 4'h0;
+	end
+	else if(update_digit) begin
 		digit <= digit_count;
 	end else begin
 		digit <= digit;
+	end
+end
+
+//digit_count output latch
+always @(posedge clk, negedge rst_n) begin
+	if(!rst_n)begin
+		//$display("shouyld reset digit\n");
+		digit_count <= 4'h0;
+	end else if(digit_clr) begin
+		digit_count <= 4'h0;
+	end
+	else if(output_count_incr) begin
+		digit_count <= digit_count+1;
+	end else begin
+		digit_count <= digit_count;
+	end
+end
+
+//digit output latch
+always @(posedge clk, negedge rst_n) begin
+	if(!rst_n)begin
+		highest_output <= 8'h00;
+	end else if(digit_clr) begin
+		highest_output <= 8'h00;
+	end
+ 	else if(update_digit) begin
+		highest_output <= LUT_output;
+	end else begin
+		highest_output <= highest_output;
 	end
 end
 
@@ -104,7 +137,7 @@ always_comb begin
 	end
 	
 	//NOT SURE SEE SLIDE 14
-	LUT_addr = LUT_addr + 11'h200;
+	LUT_addr = LUT_addr + 11'h400;
 	
 end
 
@@ -120,6 +153,7 @@ mac_clr = 0;
 digit_clr = 0;
 output_count_incr = 0;
 update_digit = 0;
+done = 0;
 
 case(state)
 		IDLE: begin
@@ -169,7 +203,10 @@ case(state)
 		if(hidden_rdy) begin
 			next_state = MAC_OUTPUT_BP1;
 			hidden_count_clr = 1;
-		end else next_state=MAC_OUTPUT;
+		end else begin
+			next_state=MAC_OUTPUT;
+			hidden_count_inc = 1;
+		end
 		end
 		
 		MAC_OUTPUT_BP1: begin
@@ -193,6 +230,7 @@ case(state)
 		end else begin
 			layer_select = 1;
 			output_count_incr = 1;
+			hidden_count_clr=1;
 			next_state = MAC_OUTPUT;
 		end
 		end
@@ -209,16 +247,16 @@ case(state)
 
 end
 
-assign hidden_rdy = (hidden_layer_counter == 6'h20);//32 // maybe use a ?
-assign in_rdy = (addr_input_unit == 10'h310); //784
+assign hidden_rdy = (hidden_layer_counter == 6'h1F);// changed to 1F from 20
+assign in_rdy = (addr_input_unit == 10'h30F); //784 from 0x310 to 0x30F
 assign hidden_done = hidden_rdy; // a bit sketch /////////////////////////////
-assign out_done = (digit_count == 4'hA);
+assign out_done = (digit_count == 4'h9);
 //assign digit = next_digit> digit ? next_digit : digit;
 
 
 assign q_input_sign_extended= {0,{7{q_input}}};
 assign input_val = (layer_select) ? ramHiddenOutput : q_input_sign_extended;
-assign weight = (layer_select) ? romHiddenWeight : romOutputWeight;
+assign weight = (layer_select) ?  romOutputWeight:romHiddenWeight; 
 assign addr_hidden_weight={hidden_layer_counter[4:0],addr_input_unit};
 assign addr_output_weight={digit_count,hidden_layer_counter[4:0]};
 endmodule

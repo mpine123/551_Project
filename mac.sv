@@ -1,7 +1,7 @@
 
-module mac(a,b,clr_n,rst_n,clk,acc);
+module mac(a,b,clr,rst_n,clk,acc);
 
-input clr_n,clk,rst_n;
+input clr,clk,rst_n;
 input [7:0] a;
 input [7:0] b;
 output logic [25:0] acc;
@@ -15,7 +15,7 @@ logic [25:0]mult_result_sign_extended;
 //accumulator reg
 always@(posedge clk,negedge rst_n)begin
 if(!rst_n) acc <= 16'h0000;
-else if(!clr_n) acc <= 16'h0000;
+else if(clr) acc <= 16'h0000;
 else acc<=adder_result;
 end
 
