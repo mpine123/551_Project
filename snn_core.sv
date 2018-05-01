@@ -1,3 +1,14 @@
+///////////////////////////////////////////////////////////////////////////////
+//                   
+// Title:             snn_core
+// Semester:          ECE 551 Spring 2018
+//
+// Authors:           Lorne Miller, Devin Ott, Maddie Pine, Carter Swedal
+// Lecturer's Name:   Younghyun Kim
+// Group Number:      1
+//
+//////////////////////////////////////////////////////////////////////////////
+
 module snn_core(start,rst_n,clk,q_input,addr_input_unit,digit,done);
 input start,q_input,rst_n,clk;
 output logic [9:0]addr_input_unit; //also used for counting

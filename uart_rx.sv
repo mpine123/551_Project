@@ -1,3 +1,13 @@
+///////////////////////////////////////////////////////////////////////////////
+//                   
+// Title:             uart_rx
+// Semester:          ECE 551 Spring 2018
+//
+// Authors:           Lorne Miller, Devin Ott, Maddie Pine, Carter Swedal
+// Lecturer's Name:   Younghyun Kim
+// Group Number:      1
+//
+//////////////////////////////////////////////////////////////////////////////
 
 module uart_rx(clk,rst_n, rx, rx_rdy,rx_data);
 input rx,clk,rst_n;
