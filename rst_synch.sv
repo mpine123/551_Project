@@ -1,3 +1,14 @@
+///////////////////////////////////////////////////////////////////////////////
+//                   
+// Title:             rst_synch
+// Semester:          ECE 551 Spring 2018
+//
+// Authors:           Lorne Miller, Devin Ott, Maddie Pine, Carter Swedal
+// Lecturer's Name:   Younghyun Kim
+// Group Number:      1
+//
+//////////////////////////////////////////////////////////////////////////////
+
 module rst_synch(sys_rst_n, rst_n,clk);
 
 input sys_rst_n, clk;

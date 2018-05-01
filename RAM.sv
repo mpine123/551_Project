@@ -1,3 +1,14 @@
+///////////////////////////////////////////////////////////////////////////////
+//                   
+// Title:             RAM
+// Semester:          ECE 551 Spring 2018
+//
+// Authors:           Lorne Miller, Devin Ott, Maddie Pine, Carter Swedal
+// Lecturer's Name:   Younghyun Kim
+// Group Number:      1
+//
+//////////////////////////////////////////////////////////////////////////////
+
 module ram #(parameter DATA_WIDTH, parameter ADDR_WIDTH, parameter INIT_FILE)(
   input [(DATA_WIDTH-1):0] data,
   input [(ADDR_WIDTH-1):0] addr,

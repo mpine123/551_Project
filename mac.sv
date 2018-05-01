@@ -1,3 +1,13 @@
+///////////////////////////////////////////////////////////////////////////////
+//                   
+// Title:             mac
+// Semester:          ECE 551 Spring 2018
+//
+// Authors:           Lorne Miller, Devin Ott, Maddie Pine, Carter Swedal
+// Lecturer's Name:   Younghyun Kim
+// Group Number:      1
+//
+//////////////////////////////////////////////////////////////////////////////
 
 module mac(a,b,clr,rst_n,clk,acc);
 

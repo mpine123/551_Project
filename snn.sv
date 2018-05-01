@@ -1,3 +1,13 @@
+///////////////////////////////////////////////////////////////////////////////
+//                   
+// Title:             snn
+// Semester:          ECE 551 Spring 2018
+//
+// Authors:           Lorne Miller, Devin Ott, Maddie Pine, Carter Swedal
+// Lecturer's Name:   Younghyun Kim
+// Group Number:      1
+//
+//////////////////////////////////////////////////////////////////////////////
 
 module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 		

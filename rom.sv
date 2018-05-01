@@ -1,3 +1,14 @@
+///////////////////////////////////////////////////////////////////////////////
+//                   
+// Title:             rom
+// Semester:          ECE 551 Spring 2018
+//
+// Authors:           Lorne Miller, Devin Ott, Maddie Pine, Carter Swedal
+// Lecturer's Name:   Younghyun Kim
+// Group Number:      1
+//
+//////////////////////////////////////////////////////////////////////////////
+
 module rom #(parameter DATA_WIDTH, parameter ADDR_WIDTH, parameter INIT_FILE)(
  input [(ADDR_WIDTH-1):0] addr,
  input clk,
