@@ -1,14 +1,3 @@
-///////////////////////////////////////////////////////////////////////////////
-//                   
-// Title:             snn_core
-// Semester:          ECE 551 Spring 2018
-//
-// Authors:           Lorne Miller, Devin Ott, Maddie Pine, Carter Swedal
-// Lecturer's Name:   Younghyun Kim
-// Group Number:      1
-//
-//////////////////////////////////////////////////////////////////////////////
-
 module snn_core(start,rst_n,clk,q_input,addr_input_unit,digit,done);
 input start,q_input,rst_n,clk;
 output logic [9:0]addr_input_unit; //also used for counting
@@ -45,7 +34,7 @@ rom #(.DATA_WIDTH(8),.ADDR_WIDTH(15), .INIT_FILE("rom_hidden_weight_contents.txt
 rom #(.DATA_WIDTH(8),.ADDR_WIDTH(9), .INIT_FILE("rom_output_weight_contents.txt")) Output_Layer_Weights(.addr(addr_output_weight),.clk(clk),.q(romOutputWeight));
 
 //RAM_INPUT_LAYER input_layer(.addr(addr_input_unit),.data(),.we(),.clk(clk),.q(q));
-ram #(.DATA_WIDTH(8),.ADDR_WIDTH(5), .INIT_FILE("ram_hidden_contents.txt")) hidden_layer(.addr(hidden_layer_counter),.data(LUT_output),.we(hidden_WE),.clk(clk),.q(ramHiddenOutput));
+ram #(.DATA_WIDTH(8),.ADDR_WIDTH(5), .INIT_FILE("ram_hidden_contents.txt")) hidden_layer(.addr(hidden_layer_counter[4:0]),.data(LUT_output),.we(hidden_WE),.clk(clk),.q(ramHiddenOutput));
 
 //GO BACK TO MAC RESULT RECTIFICATION (rect(mac)+1024)
 mac MAC (.a(input_val),.b(weight),.clr(mac_clr),.rst_n(rst_n),.clk(clk),.acc(acc));

@@ -1,14 +1,3 @@
-///////////////////////////////////////////////////////////////////////////////
-//                   
-// Title:             uart_tx
-// Semester:          ECE 551 Spring 2018
-//
-// Authors:           Lorne Miller, Devin Ott, Maddie Pine, Carter Swedal
-// Lecturer's Name:   Younghyun Kim
-// Group Number:      1
-//
-//////////////////////////////////////////////////////////////////////////////
-
 module uart_tx(clk,rst_n, tx_start, tx_data,tx,tx_rdy);
 
 input clk,rst_n,tx_start;

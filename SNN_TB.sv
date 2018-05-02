@@ -1,116 +1,82 @@
-///////////////////////////////////////////////////////////////////////////////
-//                   
-// Title:             SNN_TB
-// Semester:          ECE 551 Spring 2018
-//
-// Authors:           Lorne Miller, Devin Ott, Maddie Pine, Carter Swedal
-// Lecturer's Name:   Younghyun Kim
-// Group Number:      1
-//
-//////////////////////////////////////////////////////////////////////////////
-
 module SNN_TB();
 //inputs to SNN
-logic clk,sys_rst_n,uart_rx;
+logic clk,sys_rst_n;
 
-//outputs to SNN
-logic uart_tx;
+//PC to SNN and SNN to PC signals
+logic pc_tx, pc_rx;
 logic [7:0] led;
-logic [1023:0] digit_pixels;//zero,one,two,three,four,five,six,seven,eight,nine,ten
-reg ram[2**10-1:0];
+logic [7:0] pc_rx_data, pc_tx_data;
+logic pc_tx_start;
+logic pc_rx_rdy,pc_tx_rdy;
 
-//uart signals
-logic [7:0] rx_data,tx_data;
-logic [3:0]bit_cnt;
-logic tx_start;
 
-//ROM signals
-logic [9:0]addr;
-logic q;
 
-SNN snn_module(clk, sys_rst_n, led, uart_tx, uart_rx);
+//pc_ROM signals
+logic [9:0]pc_rom_addr;
+logic rom_out;
+logic [3:0] i;
 
-	uart_rx rx_module(.clk(clk), .rst_n(sys_rst_n), .rx(uart_tx),.rx_rdy(),.rx_data(rx_data));
+SNN snn_module(.clk(clk), .sys_rst_n(sys_rst_n), .led(led), .uart_tx(pc_rx), .uart_rx(pc_tx));
+
+uart_rx rx_module(.clk(clk), .rst_n(sys_rst_n), .rx(pc_rx),.rx_rdy(pc_rx_rdy),.rx_data(pc_rx_data));
 	
-	uart_tx tx_module(.clk(clk),.rst_n(sys_rst_n),.tx_start(tx_start),.tx_data(tx_data),.tx(uart_rx),.tx_rdy());
-//ram #(.DATA_WIDTH(1), .ADDR_WIDTH(10), .INIT_FILE("ram_input_contents_sample_0.txt")) inputValuesDUT(.q(q_input),.clk(clk),.we(we),.data(data),.addr(addr_input_unit));	
-rom #(.DATA_WIDTH(8),.ADDR_WIDTH(10), .INIT_FILE("ram_input_contents_sample_0.txt")) Activation_Function(.addr(addr),.clk(clk),.q(data));
+uart_tx tx_module(.clk(clk),.rst_n(sys_rst_n),.tx_start(pc_tx_start),.tx_data(pc_tx_data),.tx(pc_tx),.tx_rdy(pc_tx_rdy));
+
+tb_rom #(.DATA_WIDTH(1),.ADDR_WIDTH(10), .INIT_FILE("ram_input_contents_sample_9.txt")) DigitInputValues(.addr(pc_rom_addr),.clk(clk),.q(rom_out));
+
+
+task get_next_byte;
+  reg [7:0] temp;
+  reg [3:0] cnt;
+  temp = 8'h00;
+  
+  for (cnt = 0; cnt < 4'd8; cnt = cnt + 4'd1) begin    
+    @(posedge clk);
+    #4;
+    temp[cnt] = rom_out;
+    //$display("%d:  [%d] %d TEMP: %b\n",cnt, pc_rom_addr, rom_out, temp);
+    pc_rom_addr += 10'd1;
+    
+  end
+  //$display("temp: %x\n", temp);
+  pc_tx_data = temp;
+  @(posedge clk);
+endtask
+
 initial begin 
-clk=0;
-//reset core, tx, and rx
-//sys_rst_n=0;
-uart_rx=1;
-addr=0;
-send_data();
-$stop;
-//#5 sys_rst_n=1;
+  clk=0;
+  //reset core, tx, and rx
+  //sys_rst_n=0;
+  pc_rom_addr=0;
+  sys_rst_n=0;
+  pc_tx_start=0;
+  pc_tx_data=0;
+
+  repeat (10) @(posedge clk); 
+  sys_rst_n=1;
+  repeat (10) @(posedge clk);
+  while (pc_rom_addr < 10'h310) begin
+    get_next_byte();
+    pc_tx_start = 1;
+    //@(negedge tx_rdy);
+    @(posedge clk) pc_tx_start = 0;
+    @(posedge pc_tx_rdy);
+    @(posedge pc_tx_rdy);
+  end
+  //$stop;
 end
 
 always begin
 #5 clk=~clk;
 end
 
-task send_data;//(input string filename);
-	//#(parameter string )
-	//input reg [1023:0] digit_pixels;
-	
-	//$readmemh("ram_input_contents_sample_0.txt", ram);  
-	sys_rst_n=0;
-	@(posedge clk) sys_rst_n=1;
-	
-	//transmits 8 pixels at a time, so 98 sends will be needed
-	for(int count=0;count<784;count+=8)begin
-	//data=ram[count<<8'hFF];
-	addr=count;
-	monitor_full_send();
-	end
-
-endtask
-
-task monitor_full_send;
-//rst_n=0;
-//@(posedge clk) rst_n=1;
-  tx_data = data;
-  tx_start = 1'b1;
-   
-  //monitor start
-  bit_cnt = 4'hF;
-  monitor_tx(bit_cnt);
-  
-  //monitor data
-  for (bit_cnt = 4'h0; bit_cnt < 4'h8; bit_cnt = bit_cnt + 1) begin
-    monitor_tx(bit_cnt);
+//stop when we receive transmission
+always @(posedge clk) begin
+  if(pc_rx_rdy) begin
+ 	$display("rx_data: %h\n", pc_rx_data);
+	$stop;
   end
-  
-  //monitor end
-  bit_cnt = 4'hE;
-  monitor_tx(bit_cnt);
-endtask
-
-task monitor_tx;
-  input reg [3:0] bit_pos;
-
-  if (bit_pos == 4'hF) begin	//check start bit for 1 baud
-	repeat (2604) begin
-	  @(posedge clk);
-	 // assert(tx == 1'b0);
-	end
-	tx_start = 1'b0;
-  end 
-  else if (bit_pos == 4'hE) begin //check stop bit for 1 baud
-    repeat (2604) begin
-	  @(posedge clk);
-	  //assert(tx == 1'b1);
-	end
-	//assert(tx_rdy == 1'b1);
-  end
-  else begin	//check data bit for 1 baud
-    repeat (2604) begin
-	  @(posedge clk);
-	  //assert(tx == data[bit_pos]);
-	end
-  end 
-endtask
+end
 
 endmodule
 

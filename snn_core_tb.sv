@@ -1,14 +1,3 @@
-///////////////////////////////////////////////////////////////////////////////
-//                   
-// Title:             snn_core_tb
-// Semester:          ECE 551 Spring 2018
-//
-// Authors:           Lorne Miller, Devin Ott, Maddie Pine, Carter Swedal
-// Lecturer's Name:   Younghyun Kim
-// Group Number:      1
-//
-//////////////////////////////////////////////////////////////////////////////
-
 module snn_core_tb();
 
 reg start;
@@ -20,7 +9,7 @@ wire [3:0] digit;
 wire done;
 reg we, data;
 
-ram #(.DATA_WIDTH(1), .ADDR_WIDTH(10), .INIT_FILE("ram_input_contents_sample_1.txt")) inputValuesDUT(.q(q_input),.clk(clk),.we(we),.data(data),.addr(addr_input_unit));
+ram #(.DATA_WIDTH(1), .ADDR_WIDTH(10), .INIT_FILE("ram_input_contents_sample_8.txt")) inputValuesDUT(.q(q_input),.clk(clk),.we(we),.data(data),.addr(addr_input_unit));
 
 
 //RAM_INPUT_UNIT ram(.q(q_input),.clk(clk),.we(we),.data(data),.addr(addr_input_unit));
