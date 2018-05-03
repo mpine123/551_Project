@@ -1,4 +1,4 @@
-module ram #(parameter DATA_WIDTH, parameter ADDR_WIDTH, parameter INIT_FILE)(
+module ram #(parameter DATA_WIDTH = 1, parameter ADDR_WIDTH = 10, parameter INIT_FILE = "hello")(
   input [(DATA_WIDTH-1):0] data,
   input [(ADDR_WIDTH-1):0] addr,
   input we, clk,

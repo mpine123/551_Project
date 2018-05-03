@@ -16,13 +16,13 @@ logic [9:0]pc_rom_addr;
 logic [9:0]rom_out;
 logic [3:0] file_num;
 
-SNN snn_module(.clk(clk), .sys_rst_n(sys_rst_n), .led(led), .uart_tx(pc_rx), .uart_rx(pc_tx));
+snn snn_module(.clk(clk), .sys_rst_n(sys_rst_n), .led(led), .uart_tx(pc_rx), .uart_rx(pc_tx));
 
 uart_rx rx_module(.clk(clk), .rst_n(sys_rst_n), .rx(pc_rx),.rx_rdy(pc_rx_rdy),.rx_data(pc_rx_data));
 	
 uart_tx tx_module(.clk(clk),.rst_n(sys_rst_n),.tx_start(pc_tx_start),.tx_data(pc_tx_data),.tx(pc_tx),.tx_rdy(pc_tx_rdy));
 
-rom #(.DATA_WIDTH(1),.ADDR_WIDTH(10), .INIT_FILE("ram_input_contents_sample_6.txt")) rom0(.addr(pc_rom_addr),.clk(clk),.q(rom_out[0]));
+rom #(.DATA_WIDTH(1),.ADDR_WIDTH(10), .INIT_FILE("ram_input_contents_sample_0.txt")) rom0(.addr(pc_rom_addr),.clk(clk),.q(rom_out[0]));
 rom #(.DATA_WIDTH(1),.ADDR_WIDTH(10), .INIT_FILE("ram_input_contents_sample_1.txt")) rom1(.addr(pc_rom_addr),.clk(clk),.q(rom_out[1]));
 rom #(.DATA_WIDTH(1),.ADDR_WIDTH(10), .INIT_FILE("ram_input_contents_sample_2.txt")) rom2(.addr(pc_rom_addr),.clk(clk),.q(rom_out[2]));
 rom #(.DATA_WIDTH(1),.ADDR_WIDTH(10), .INIT_FILE("ram_input_contents_sample_3.txt")) rom3(.addr(pc_rom_addr),.clk(clk),.q(rom_out[3]));
@@ -64,7 +64,7 @@ initial begin
   repeat (2) @(posedge clk); 
   sys_rst_n=1;
   repeat (2) @(posedge clk);
-  for (file_num = 0; file_num < 1; file_num+= 1) begin
+  for (file_num = 0; file_num < 10; file_num+= 1) begin
 	  pc_rom_addr=0;
 	  while (pc_rom_addr < 10'h310) begin
 		get_next_byte(file_num);

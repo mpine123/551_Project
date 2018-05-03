@@ -1,5 +1,5 @@
 
-module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
+module snn(clk, sys_rst_n, led, uart_tx, uart_rx);
 		
 	input clk;			      // 50MHz clock
 	input sys_rst_n;			// Unsynched reset from push button. Needs to be synchronized.
