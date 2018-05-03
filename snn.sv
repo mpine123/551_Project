@@ -4,6 +4,8 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 	input clk;			      // 50MHz clock
 	input sys_rst_n;			// Unsynched reset from push button. Needs to be synchronized.
 	output reg [7:0] led;	// Drives LEDs of DE0 nano board
+	wire [7:0]output_led;
+	
 	
 	//UART variables
 	input uart_rx;
@@ -48,7 +50,7 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 	
 	snn_core snn_core_module(.start(start),.rst_n(sys_rst_n),.clk(clk),.q_input(snn_core_q_input),.addr_input_unit(addr_input_unit),.digit(digit),.done(done));	
 	
-	uart_tx tx_module(.clk(clk),.rst_n(sys_rst_n),.tx_start(transmit),.tx_data({4'h0,digit[3:0]}),.tx(uart_tx),.tx_rdy(tx_rdy));
+	uart_tx tx_module(.clk(clk),.rst_n(sys_rst_n),.tx_start(transmit),.tx_data(output_led),.tx(uart_tx),.tx_rdy(tx_rdy));
 	
 
 	
@@ -61,12 +63,12 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 	// Double flop RX for meta-stability reasons
 	always_ff @(posedge clk, negedge rst_n)
 		if (!rst_n) begin
-		uart_rx_ff <= 1'b1;
-		uart_rx_synch <= 1'b1;
-	end else begin
-	  uart_rx_ff <= uart_rx;
-	  uart_rx_synch <= uart_rx_ff;
-	end
+			uart_rx_ff <= 1'b1;
+			uart_rx_synch <= 1'b1;
+		end else begin
+		  uart_rx_ff <= uart_rx;
+		  uart_rx_synch <= uart_rx_ff;
+		end
 	
 	//state reg
 	always@(posedge clk,negedge rst_n) begin
@@ -75,7 +77,7 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 		end
 		else 
 			state<=next_state;
-	end
+		end
 
 	//Pixel Count Register
 	always@(posedge clk,negedge rst_n) begin
@@ -86,7 +88,7 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 			pixel_count<=10'h000;
 		end
 		else if(inc_pixel_cnt) begin
-			pixel_count <= pixel_count + 1;
+			pixel_count <= pixel_count + 1'h1;
 		end
 		else begin
 			pixel_count <= pixel_count;
@@ -97,11 +99,9 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 	always@(posedge clk,negedge rst_n) begin
 		if(!rst_n) begin
 			pixel_values<=8'h00;
-		end
-		else if(store_rx) begin
+		end	else if(store_rx) begin
 			pixel_values<=rx_data;
-		end
-		else begin
+		end	else begin
 			pixel_values <= pixel_values;
 		end
 	end
@@ -110,12 +110,10 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 	always@(posedge clk,negedge rst_n) begin
 		if(!rst_n) begin
 			bit_cnt<=4'h0;
-		end
-		else if(bit_cnt_clr) begin
+		end else if(bit_cnt_clr) begin
 			bit_cnt<=4'h0;
-		end
-		else begin
-			bit_cnt <= bit_cnt+1;
+		end else begin
+			bit_cnt <= bit_cnt+1'h1;
 		end
 	end
 	
@@ -123,106 +121,98 @@ module SNN(clk, sys_rst_n, led, uart_tx, uart_rx);
 	LED
 	******************************************************/
 	always_ff @(posedge clk) begin 
-	if(!rst_n) led<=8'h00; 
-	else if(update_led) begin 
-		
-		led <= digit;
+		if(!rst_n) led<=8'h00; 
+		else if(update_led) begin 			
+			led <= output_led;
+		end	else begin
+		led <= led;
 		end
-	
-	else begin
-	led <= led;
-	end
 	end
 	
 	//state machine
 	
 	always_comb begin
 		next_state=IDLE;
-		clr_pixel_cnt=1;
-		inc_pixel_cnt=0;
-		update_led=0;
-		transmit=0;
-		store_rx=0;
-		bit_cnt_clr=1;
-		we=0;
-		start=0;
-		//clr_pixel_cnt,inc_pixel_cnt,update_led,transmit,store_rx,bit_cnt_clr,we;
+		clr_pixel_cnt=1'h1;
+		inc_pixel_cnt=1'h0;
+		update_led=1'h0;
+		transmit=1'h0;
+		store_rx=1'h0;
+		bit_cnt_clr=1'h1;
+		we=1'h0;
+		start=1'h0;
 		
-	case(state)
-		IDLE: begin
-			if(!rx_rdy) begin
-				next_state=IDLE;
+		case(state)
+			IDLE: begin
+				if(!rx_rdy) begin
+					next_state=IDLE;
+				end
+				else begin
+					next_state=WRITE_BYTE;
+					store_rx=1'h1;
+				end
 			end
-			else begin
-				next_state=WRITE_BYTE;
-				store_rx=1;
+			
+			WRITE_BYTE : begin
+				if(full_byte && !full_pixel_cnt) begin
+					clr_pixel_cnt=1'h0;
+					inc_pixel_cnt=1'h1;
+					inc_pixel_cnt=1'h1;
+					we=1'h1;
+					next_state = WAIT_RX;
+				end else if(full_byte && full_pixel_cnt) begin
+					start=1'h1;
+					inc_pixel_cnt=1'h1;
+					we=1'h1;
+					next_state = PREDICT_DIGIT;
+				end else begin
+					bit_cnt_clr=1'h0;
+					clr_pixel_cnt=1'h0;
+					we=1'h1;
+					inc_pixel_cnt=1'h1;
+					next_state = WRITE_BYTE;
+				end
 			end
-		end
-		
-		WRITE_BYTE : begin
-			if(full_byte && !full_pixel_cnt) begin
-				clr_pixel_cnt=0;
-				inc_pixel_cnt=1;
-				inc_pixel_cnt=1;
-				we=1;
-				next_state = WAIT_RX;
+			
+			WAIT_RX : begin
+				if(rx_rdy) begin
+					store_rx=1'h1;
+					clr_pixel_cnt=1'h0;
+					next_state = WRITE_BYTE;
+				end else begin
+					clr_pixel_cnt=1'h0;
+					next_state=WAIT_RX;
+				end
 			end
-			else if(full_byte && full_pixel_cnt) begin
-				start=1;
-				inc_pixel_cnt=1;
-				we=1;
-				next_state = PREDICT_DIGIT;
+			PREDICT_DIGIT: begin
+				if(!done) begin
+					next_state=PREDICT_DIGIT;
+				end else begin
+					next_state=TRANSMITTING;
+					transmit=1'h1;
+					update_led=1'h1;
+				end
 			end
-			else begin
-				bit_cnt_clr=0;
-				clr_pixel_cnt=0;
-				we=1;
-				inc_pixel_cnt=1;
-				next_state = WRITE_BYTE;
+			
+			TRANSMITTING: begin 
+				if(!tx_rdy) begin
+					next_state=TRANSMITTING;
+				end else begin 
+					next_state=IDLE;
+				end
 			end
-		end
-		
-		WAIT_RX : begin
-			if(rx_rdy) begin
-				store_rx=1;
-				clr_pixel_cnt=0;
-				next_state = WRITE_BYTE;
+			
+			default: begin 
+				next_state = IDLE;
 			end
-			//!rx_rdy
-			else begin
-				clr_pixel_cnt=0;
-				next_state=WAIT_RX;
-			end
-		end
-		PREDICT_DIGIT: begin
-			if(!done) begin
-			next_state=PREDICT_DIGIT;
-			end 
-			else begin
-			next_state=TRANSMITTING;
-			transmit=1;
-			update_led=1;
-			end
-		end
-		
-		TRANSMITTING: begin 
-			if(!tx_rdy) begin
-				next_state=TRANSMITTING;
-			end
-			else begin 
-			next_state=IDLE;
-			end
-		end
-		
-		default: begin 
-		end
-		endcase
+			endcase
 	end
 	
 	//logic to decide the input of the RAM unit
-	assign address=(state==PREDICT_DIGIT)?addr_input_unit:pixel_count;
-	assign data=pixel_values[bit_cnt];
+	assign address = (state == PREDICT_DIGIT) ? addr_input_unit:pixel_count;
+	assign data = pixel_values[bit_cnt];
 	assign full_byte = (bit_cnt == 4'h7);
 	assign full_pixel_cnt = (pixel_count == 10'h30F);
+	assign output_led = {4'h0,digit};
 	
 endmodule

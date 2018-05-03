@@ -14,7 +14,6 @@ module ram #(parameter DATA_WIDTH, parameter ADDR_WIDTH, parameter INIT_FILE)(
 
   initial begin
      $readmemh(INIT_FILE, ram);
-     $display("Data file: %s\n",INIT_FILE);
   end
 
   always @ (posedge clk)

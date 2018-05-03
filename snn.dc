@@ -1,0 +1,42 @@
+read_file -format verilog { uart_tx.v uart_rx.v RAM.v rom.v mac.v snn_core.v snn.v }
+
+set current_design SNN
+
+create_clock -name "clk" -period 2.5 -waveform {0 1} {clk}
+set_dont_touch_network [find port clk]
+
+set prim_inputs [remove_from_collection [all_inputs] [find port clk]]
+set_input_delay -clock clk 0.5 $prim_inputs
+
+set_driving_cell -lib_cell AO33D0BWP -from_pin A1 -library tcbn40lpbwptc $prim_inputs
+#this needs to be verified
+set_drive 0.1 rst_n
+
+set_output_delay -clock clk 0.5 [all_outputs]
+set_load 0.1 [all_outputs]
+
+set_wire_load_model -name TSMC32K_Lowk_Conservative -library tcbn40lpbwptc
+
+set_max_transition 0.15 [current_design]
+
+#compile 1st time
+compile -map_effort medium
+
+#need to explicity tell synth to include clk uncertainty
+set_clock_uncertainty 0.1 clk
+set_fix_hold clk
+
+#compile 2nd time
+ungroup -all -flatten
+compile_ultra #this might need to be lower
+#compile -map_effort high
+
+#compile -incremantal_mapping -only_hold_time
+
+write -format verilog snn -output snn.vg
+
+##reports
+report_timing -delay max > snn_timing_max.rpt
+report_timing -delay min > snn_timing_min.rpt
+report_area > snn_area.rpt
+

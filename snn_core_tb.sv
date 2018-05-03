@@ -24,8 +24,7 @@ initial begin
 	start= 0;
 	we = 0;
 	data = 0;
-
-	repeat (10) @(posedge clk);
+	@(posedge clk);
 	
 	rst_n = 1;
 	@(posedge clk);
@@ -34,8 +33,8 @@ initial begin
 	start = 0;
 
 	@(posedge done);
-	repeat (10) @(posedge clk);
-	$display("Expected: 0 got: %d\n", digit);
+	@(posedge clk);
+	$display("Expected: 0 got: %d: TIME: %d\n", digit, $time);
 	$stop;
 end
 

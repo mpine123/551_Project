@@ -61,7 +61,7 @@ always @(posedge clk, negedge rst_n) begin
 	end else if(in_count_clr)begin
 		addr_input_unit <= 10'h000;
 	end else begin
-		addr_input_unit <= addr_input_unit + 1;
+		addr_input_unit <= addr_input_unit + 1'h1;
 	end
 
 end
@@ -75,7 +75,7 @@ always @(posedge clk, negedge rst_n) begin
 	end else if(hidden_count_clr)begin
 		hidden_layer_counter <= 6'h00;
 	end else if(hidden_count_inc)begin
-		hidden_layer_counter <= hidden_layer_counter + 1;
+		hidden_layer_counter <= hidden_layer_counter + 1'h1;
 	end else begin
 		hidden_layer_counter <= hidden_layer_counter;
 	end
@@ -106,7 +106,7 @@ always @(posedge clk, negedge rst_n) begin
 		digit_count <= 4'h0;
 	end
 	else if(output_count_incr) begin
-		digit_count <= digit_count+1;
+		digit_count <= digit_count+1'h1;
 	end else begin
 		digit_count <= digit_count;
 	end
@@ -128,9 +128,9 @@ end
 
 //Rectifier
 always_comb begin
-	if(acc[25] == 0 && ((acc >> 17) & 8'hFF) != 8'h00)begin
+	if(acc[25] == 1'h0 && ((acc >> 17) & 8'hFF) != 8'h00)begin
 		LUT_addr = 11'h3FF;
-	end else if(acc[25] == 1 && ((acc >>17) & 8'hFF) != 8'hFF)begin
+	end else if(acc[25] == 1'h1 && ((acc >>17) & 8'hFF) != 8'hFF)begin
 		LUT_addr = 11'h400;
 	end else begin
 		LUT_addr = acc[17:7];
@@ -144,99 +144,99 @@ end
 //FSM
 always_comb begin
 
-in_count_clr = 0;
-hidden_count_clr = 0;
-hidden_count_inc = 0;
-layer_select = 0;
-hidden_WE=0;
-mac_clr = 0;
-digit_clr = 0;
-output_count_incr = 0;
-update_digit = 0;
-done = 0;
+in_count_clr = 1'h0;
+hidden_count_clr = 1'h0;
+hidden_count_inc = 1'h0;
+layer_select = 1'h0;
+hidden_WE=1'h0;
+mac_clr = 1'h0;
+digit_clr = 1'h0;
+output_count_incr = 1'h0;
+update_digit = 1'h0;
+done = 1'h0;
 
 case(state)
 		IDLE: begin
-		in_count_clr = 1;
-		hidden_count_clr = 1;
-		mac_clr = 1;
-		digit_clr = 1;
+			in_count_clr = 1'h1;
+			hidden_count_clr = 1'h1;
+			mac_clr = 1'h1;
+			digit_clr = 1'h1;
 
-			if(!start) next_state = IDLE;
-			else next_state = MAC_HIDDEN;
+				if(!start) next_state = IDLE;
+				else next_state = MAC_HIDDEN;
 		end
 
 		MAC_HIDDEN: begin
 			//this is 784
 			if(in_rdy) begin //TODO need logic for input ready
 				next_state = MAC_HIDDEN_BP1;
-				in_count_clr = 1;
+				in_count_clr = 1'h1;
 			end else next_state = MAC_HIDDEN;
 		end
 
 		MAC_HIDDEN_BP1:begin
-		//unconditional
-		next_state = MAC_HIDDEN_BP2;
+			//unconditional
+			next_state = MAC_HIDDEN_BP2;
 		end
 
 
 		MAC_HIDDEN_BP2:begin
-		//unconditional
-		mac_clr = 1;
-		next_state = MAC_HIDDEN_WRITE;
+			//unconditional
+			mac_clr = 1'h1;
+			next_state = MAC_HIDDEN_WRITE;
 		end
 		
 		MAC_HIDDEN_WRITE:begin
-		hidden_WE=1;
-		if(hidden_done) begin 
-			next_state=MAC_OUTPUT;
-			layer_select = 1;
-			hidden_count_clr = 1;
-		end else begin
-			next_state = MAC_HIDDEN;
-			hidden_count_inc = 1;
+			hidden_WE=1'h1;
+			if(hidden_done) begin 
+				next_state=MAC_OUTPUT;
+				layer_select = 1'h1;
+				hidden_count_clr = 1'h1;
+			end else begin
+				next_state = MAC_HIDDEN;
+				hidden_count_inc = 1'h1;
 			end
 		end
 		
 		MAC_OUTPUT: begin
-		layer_select = 1;
-		if(hidden_rdy) begin
-			next_state = MAC_OUTPUT_BP1;
-			hidden_count_clr = 1;
-		end else begin
-			next_state=MAC_OUTPUT;
-			hidden_count_inc = 1;
-		end
+			layer_select = 1'h1;
+			if(hidden_rdy) begin
+				next_state = MAC_OUTPUT_BP1;
+				hidden_count_clr = 1'h1;
+			end else begin
+				next_state=MAC_OUTPUT;
+				hidden_count_inc = 1'h1;
+			end
 		end
 		
 		MAC_OUTPUT_BP1: begin
-		layer_select = 1;
-		next_state=MAC_OUTPUT_BP2;
-		end
-		
-		MAC_OUTPUT_BP2: begin
-		layer_select = 1;
-		mac_clr = 1;
-		if(LUT_output > highest_output) begin
-			update_digit = 1;
-		end 
-		next_state=MAC_OUTPUT_WRITE;
+			layer_select = 1'h1;
+			next_state=MAC_OUTPUT_BP2;
+			end
+			
+			MAC_OUTPUT_BP2: begin
+			layer_select = 1'h1;
+			mac_clr = 1'h1;
+			if(LUT_output > highest_output) begin
+				update_digit = 1'h1;
+			end 
+			next_state=MAC_OUTPUT_WRITE;
 		end
 
 		MAC_OUTPUT_WRITE: begin
-		if(out_done)begin
-			next_state = DONE;
-			done = 1;
-		end else begin
-			layer_select = 1;
-			output_count_incr = 1;
-			hidden_count_clr=1;
-			next_state = MAC_OUTPUT;
-		end
+			if(out_done)begin
+				next_state = DONE;
+				done = 1'h1;
+			end else begin
+				layer_select = 1'h1;
+				output_count_incr = 1'h1;
+				hidden_count_clr=1'h1;
+				next_state = MAC_OUTPUT;
+			end
 		end
 
 		DONE: begin
-		next_state=IDLE;
+			next_state=IDLE;
 		end
 
 		default: begin 
@@ -254,7 +254,7 @@ assign out_done = (digit_count == 4'h9);
 //assign digit = next_digit> digit ? next_digit : digit;
 
 
-assign q_input_sign_extended= {0,{7{q_input}}};
+assign q_input_sign_extended= {1'h0,{7{q_input}}};
 assign input_val = (layer_select) ? ramHiddenOutput : q_input_sign_extended;
 assign weight = (layer_select) ?  romOutputWeight:romHiddenWeight; 
 assign addr_hidden_weight={hidden_layer_counter[4:0],addr_input_unit};
